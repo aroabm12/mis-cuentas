@@ -248,6 +248,28 @@ export default function Home() {
     return diaEsHoy(iff.dia, diaHoy) && !yaRegistrado;
   });
 
+  // ---- Reparto tras cobrar ----
+  // Cuando ya has cobrado este mes: cuánto dejar en la cuenta para lo que
+  // falta por pagar y gastar hasta el próximo cobro, y cuánto puedes apartar.
+  const primerDia = (dia) => {
+    const n = String(dia || "").match(/\d+/);
+    return n ? Number(n[0]) : null;
+  };
+  const cobradoEsteMes =
+    ingresosFijos.length > 0 &&
+    ingresosFijos.some((iff) =>
+      movDelMesReal.some((m) => Number(m.ingreso) > 0 && m.concepto.toLowerCase().includes(iff.concepto.toLowerCase()))
+    );
+  const diaProximoCobro = Math.min(...ingresosFijos.map((iff) => primerDia(iff.dia)).filter((d) => d !== null), 99);
+  const mesSiguienteReal = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
+  const fijosPendientesMes = gastosFijosHoyEstado.filter((gf) => !gf.registrado);
+  const fijosAntesDeCobrar = gastosFijos.filter((gf) => {
+    const d = primerDia(gf.dia);
+    return gastoFijoTocaEnMes(gf, mesSiguienteReal) && d !== null && d < diaProximoCobro;
+  });
+  const totalFijosPendientes = fijosPendientesMes.reduce((s, gf) => s + Number(gf.importe), 0);
+  const totalFijosAntesDeCobrar = fijosAntesDeCobrar.reduce((s, gf) => s + Number(gf.importe), 0);
+
   // Índice de la categoría variable de un gasto (-1 = sin categoría), o
   // null si no es un gasto variable.
   function categoriaDeGasto(m) {
@@ -689,6 +711,81 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {cobradoEsteMes && esMesActual && !loading && (() => {
+        const paraGastar = Math.max(0, restaDisponible);
+        const dejar = totalFijosPendientes + totalFijosAntesDeCobrar + paraGastar;
+        const apartar = saldoActual - dejar;
+        const nombreSig = mesSiguienteReal.toLocaleDateString("es-ES", { month: "long" });
+        return (
+          <div className="card reparto">
+            <strong>Ya has cobrado: reparte tu dinero</strong>
+            <p className="subtitle" style={{ margin: "6px 0 12px" }}>
+              Lo que tienes que dejar en la cuenta hasta que vuelvas a cobrar, y lo que puedes apartar.
+            </p>
+            <div className="presupuesto-linea">
+              <span>Tienes ahora</span>
+              <span>{money(saldoActual)}</span>
+            </div>
+            <div className="presupuesto-linea resta">
+              <span>− Gastos fijos que faltan este mes</span>
+              <span>{money(totalFijosPendientes)}</span>
+            </div>
+            {fijosPendientesMes.length > 0 && (
+              <div className="reparto-detalle">
+                {fijosPendientesMes.map((gf) => (
+                  <div key={gf.id} className="var-mov-item">
+                    <span>
+                      {gf.concepto}
+                      {gf.dia && <span className="dia"> · día {gf.dia}</span>}
+                    </span>
+                    <span>{money(gf.importe)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="presupuesto-linea resta">
+              <span>
+                − Gastos fijos de {nombreSig} antes de cobrar
+                {diaProximoCobro < 99 && ` (día ${diaProximoCobro})`}
+              </span>
+              <span>{money(totalFijosAntesDeCobrar)}</span>
+            </div>
+            {fijosAntesDeCobrar.length > 0 && (
+              <div className="reparto-detalle">
+                {fijosAntesDeCobrar.map((gf) => (
+                  <div key={gf.id} className="var-mov-item">
+                    <span>
+                      {gf.concepto}
+                      {gf.dia && <span className="dia"> · día {gf.dia}</span>}
+                    </span>
+                    <span>{money(gf.importe)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="presupuesto-linea resta">
+              <span>− Lo que puedes gastar hasta fin de mes</span>
+              <span>{money(paraGastar)}</span>
+            </div>
+            <div className="presupuesto-linea total">
+              <span>Deja en la cuenta</span>
+              <span>{money(dejar)}</span>
+            </div>
+            <div className={"reparto-apartar" + (apartar < 0 ? " mal" : "")}>
+              {apartar >= 0 ? (
+                <>
+                  Puedes apartar para ahorrar <strong>{money(apartar)}</strong>
+                </>
+              ) : (
+                <>
+                  Te faltan <strong>{money(-apartar)}</strong> para cubrir todo hasta el próximo cobro
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="selector-mes">
         <button type="button" className="mes-btn" onClick={mesAnterior}>‹</button>

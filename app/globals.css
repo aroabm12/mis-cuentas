@@ -516,3 +516,22 @@ label.check input[type="month"] { width: auto; padding: 4px 8px; min-height: 0; 
 }
 .evo-valor { font-variant-numeric: tabular-nums; text-align: right; min-width: 92px; }
 .link-btn:hover { background: transparent; color: var(--color-primary-dark); }
+
+/* Reparto tras cobrar */
+.reparto { border-left: 4px solid var(--color-primary); }
+.reparto-detalle {
+  margin: 0 0 6px 12px;
+  padding: 2px 10px;
+  background: var(--color-bg);
+  border-radius: 8px;
+}
+.reparto-apartar {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+  font-size: 0.95rem;
+  text-align: center;
+}
+.reparto-apartar strong { font-size: 1.15rem; }
+.reparto-apartar.mal { background: var(--color-gasto-soft); }

@@ -721,61 +721,67 @@ export default function Home() {
           <div className="card reparto">
             <strong>Ya has cobrado: reparte tu dinero</strong>
             <p className="subtitle" style={{ margin: "6px 0 12px" }}>
-              Lo que tienes que dejar en la cuenta hasta que vuelvas a cobrar, y lo que puedes apartar.
+              Lo que necesitas en la cuenta hasta que vuelvas a cobrar.
             </p>
-            <div className="presupuesto-linea">
-              <span>Tienes ahora</span>
-              <span>{money(saldoActual)}</span>
-            </div>
-            <div className="presupuesto-linea resta">
-              <span>− Gastos fijos que faltan este mes</span>
-              <span>{money(totalFijosPendientes)}</span>
-            </div>
-            {fijosPendientesMes.length > 0 && (
-              <div className="reparto-detalle">
-                {fijosPendientesMes.map((gf) => (
-                  <div key={gf.id} className="var-mov-item">
-                    <span>
-                      {gf.concepto}
-                      {gf.dia && <span className="dia"> · día {gf.dia}</span>}
-                    </span>
-                    <span>{money(gf.importe)}</span>
-                  </div>
-                ))}
+            <div className="reparto-bloque">
+              <div className="presupuesto-linea">
+                <span>Gastos fijos que faltan este mes</span>
+                <span>{money(totalFijosPendientes)}</span>
               </div>
-            )}
-            <div className="presupuesto-linea resta">
-              <span>
-                − Gastos fijos de {nombreSig} antes de cobrar
-                {diaProximoCobro < 99 && ` (día ${diaProximoCobro})`}
-              </span>
-              <span>{money(totalFijosAntesDeCobrar)}</span>
+              {fijosPendientesMes.length > 0 && (
+                <div className="reparto-detalle">
+                  {fijosPendientesMes.map((gf) => (
+                    <div key={gf.id} className="var-mov-item">
+                      <span>
+                        {gf.concepto}
+                        {gf.dia && <span className="dia"> · día {gf.dia}</span>}
+                      </span>
+                      <span>{money(gf.importe)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {fijosAntesDeCobrar.length > 0 && (
-              <div className="reparto-detalle">
-                {fijosAntesDeCobrar.map((gf) => (
-                  <div key={gf.id} className="var-mov-item">
-                    <span>
-                      {gf.concepto}
-                      {gf.dia && <span className="dia"> · día {gf.dia}</span>}
-                    </span>
-                    <span>{money(gf.importe)}</span>
-                  </div>
-                ))}
+            <div className="reparto-bloque">
+              <div className="presupuesto-linea">
+                <span>
+                  Gastos fijos de {nombreSig} antes de cobrar
+                  {diaProximoCobro < 99 && ` (día ${diaProximoCobro})`}
+                </span>
+                <span>{money(totalFijosAntesDeCobrar)}</span>
               </div>
-            )}
-            <div className="presupuesto-linea resta">
-              <span>− Lo que puedes gastar hasta fin de mes</span>
-              <span>{money(paraGastar)}</span>
+              {fijosAntesDeCobrar.length > 0 && (
+                <div className="reparto-detalle">
+                  {fijosAntesDeCobrar.map((gf) => (
+                    <div key={gf.id} className="var-mov-item">
+                      <span>
+                        {gf.concepto}
+                        {gf.dia && <span className="dia"> · día {gf.dia}</span>}
+                      </span>
+                      <span>{money(gf.importe)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="reparto-bloque">
+              <div className="presupuesto-linea">
+                <span>Para gastar hasta fin de mes</span>
+                <span>{money(paraGastar)}</span>
+              </div>
             </div>
             <div className="presupuesto-linea total">
-              <span>Deja en la cuenta</span>
+              <span>Total a dejar en la cuenta</span>
               <span>{money(dejar)}</span>
+            </div>
+            <div className="presupuesto-linea" style={{ marginTop: 10 }}>
+              <span>Tienes ahora</span>
+              <span>{money(saldoActual)}</span>
             </div>
             <div className={"reparto-apartar" + (apartar < 0 ? " mal" : "")}>
               {apartar >= 0 ? (
                 <>
-                  Puedes apartar para ahorrar <strong>{money(apartar)}</strong>
+                  Así tendrías ahorrado <strong>{money(apartar)}</strong>
                 </>
               ) : (
                 <>

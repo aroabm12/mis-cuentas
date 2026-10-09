@@ -233,6 +233,34 @@ export default function Home() {
     });
   }
   const fijoPagadoEn = (gf, movs) => !!movimientoQuePaga(gf, movs);
+
+  // "desmarcar": los gastos del mes que marcaban este fijo como pagado
+  // dejan de contar como su pago (pasan a gastos variables).
+  async function desmarcarFijo(gf) {
+    const ids = movDelMes
+      .filter((m) => {
+        if (!(Number(m.gasto) > 0)) return false;
+        const c = clasificarGasto(m, gastosFijos, presupuestoVariable);
+        return c.fijo && gastosFijos[c.indice].id === gf.id;
+      })
+      .map((m) => m.id);
+    if (!ids.length) return;
+    setError("");
+    try {
+      const res = await fetch("/api/movimientos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Error ${res.status}`);
+      }
+      cargarTodo();
+    } catch (err) {
+      setError("No se ha podido desmarcar: " + err.message);
+    }
+  }
   const gastosFijosConEstado = gastosFijos
     .map((gf) => {
       const pagadoCon = movimientoQuePaga(gf, movDelMes);
@@ -371,6 +399,7 @@ export default function Home() {
           gasto: m.tipo === "gasto" ? m.importe : 0,
           ingreso: m.tipo === "ingreso" ? m.importe : 0,
           categoriaId: m.tipo === "gasto" ? m.categoriaId : null,
+          noEsFijo: !!m.noEsFijo,
         }),
       });
       if (!res.ok) {
@@ -1054,6 +1083,10 @@ export default function Home() {
                 <span className="pagado-con">
                   pagado con «{gf.pagadoCon.concepto}» el{" "}
                   {new Date(gf.pagadoCon.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "numeric" })}
+                  {" · "}
+                  <button type="button" className="link-btn desmarcar" onClick={() => desmarcarFijo(gf)}>
+                    desmarcar
+                  </button>
                 </span>
               )}
             </span>
@@ -1484,7 +1517,7 @@ function CategoriaEditable({ cat, onGuardar, onBorrar }) {
 function FilaMovimientoEditable({ m, gastosFijos, categorias, onGuardar, onCancelar }) {
   const categoriaInicial = categorias.some((c) => c.id === m.categoria_id)
     ? "cat-" + m.categoria_id
-    : sugerirCategoria(m.concepto, gastosFijos, categorias);
+    : sugerirCategoria(m.concepto, m.no_es_fijo ? [] : gastosFijos, categorias);
   const [local, setLocal] = useState({
     fecha: m.fecha ? new Date(m.fecha).toISOString().slice(0, 10) : "",
     concepto: m.concepto,
@@ -1504,6 +1537,8 @@ function FilaMovimientoEditable({ m, gastosFijos, categorias, onGuardar, onCance
       id: m.id,
       concepto: elegida ? elegida.concepto : local.concepto,
       categoriaId: elegida ? elegida.categoriaId : null,
+      // Si eliges un gasto fijo, vuelve a contar como tal.
+      noEsFijo: m.no_es_fijo && !local.categoria.startsWith("gf-"),
     });
   }
   return (

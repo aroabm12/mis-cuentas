@@ -538,3 +538,4 @@ label.check input[type="month"] { width: auto; padding: 4px 8px; min-height: 0; 
 .reparto-bloque { padding: 4px 0; border-bottom: 1px dashed var(--color-border); }
 .reparto-bloque .reparto-detalle { margin-top: 4px; }
 .pagado-con { display: block; font-size: 0.72rem; color: var(--color-muted); margin: 2px 0 0 18px; }
+.link-btn.desmarcar { font-size: 0.72rem; padding: 0; color: var(--color-gasto); }

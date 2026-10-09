@@ -225,15 +225,19 @@ export default function Home() {
   const enMeta = restaDisponible >= 0;
 
   // Un gasto fijo está pagado si hay un gasto del mes que cuenta como ese fijo.
-  function fijoPagadoEn(gf, movs) {
-    return movs.some((m) => {
+  function movimientoQuePaga(gf, movs) {
+    return movs.find((m) => {
       if (!(Number(m.gasto) > 0)) return false;
       const c = clasificarGasto(m, gastosFijos, presupuestoVariable);
       return c.fijo && gastosFijos[c.indice].id === gf.id;
     });
   }
+  const fijoPagadoEn = (gf, movs) => !!movimientoQuePaga(gf, movs);
   const gastosFijosConEstado = gastosFijos
-    .map((gf) => ({ ...gf, registrado: fijoPagadoEn(gf, movDelMes) }))
+    .map((gf) => {
+      const pagadoCon = movimientoQuePaga(gf, movDelMes);
+      return { ...gf, registrado: !!pagadoCon, pagadoCon };
+    })
     .filter((gf) => gf.registrado || gastoFijoTocaEnMes(gf, mesSeleccionado));
 
   const diaHoy = hoy.getDate();
@@ -1046,6 +1050,12 @@ export default function Home() {
                 {gf.dia && `· día ${gf.dia}`}
                 {gf.meses_alternos_desde && " · mes sí, mes no"}
               </span>
+              {gf.pagadoCon && (
+                <span className="pagado-con">
+                  pagado con «{gf.pagadoCon.concepto}» el{" "}
+                  {new Date(gf.pagadoCon.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "numeric" })}
+                </span>
+              )}
             </span>
             <span className="gf-right">
               {money(gf.importe)}

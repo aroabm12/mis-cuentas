@@ -1232,7 +1232,7 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            {listaMovsMostrada.map((m) =>
+            {[...listaMovsMostrada].reverse().map((m) =>
               movEditandoId === m.id ? (
                 <FilaMovimientoEditable
                   key={m.id}

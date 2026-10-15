@@ -539,3 +539,10 @@ label.check input[type="month"] { width: auto; padding: 4px 8px; min-height: 0; 
 .reparto-bloque .reparto-detalle { margin-top: 4px; }
 .pagado-con { display: block; font-size: 0.72rem; color: var(--color-muted); margin: 2px 0 0 18px; }
 .link-btn.desmarcar { font-size: 0.72rem; padding: 0; color: var(--color-gasto); }
+
+/* "Este mes no" en gastos fijos */
+.gf-item { flex-wrap: wrap; }
+.gf-item.saltado { color: var(--color-muted); }
+.gf-item.saltado > span:first-child { text-decoration: line-through; }
+.gf-saltar { flex-basis: 100%; margin: 2px 0 0 18px; font-size: 0.72rem; color: var(--color-muted); }
+.gf-saltar .link-btn { font-size: 0.72rem; padding: 0; color: var(--color-muted); font-weight: normal; }

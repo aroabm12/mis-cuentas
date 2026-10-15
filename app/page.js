@@ -4,7 +4,9 @@ import { descargarExcel } from "../lib/exportarExcel";
 import {
   clasificarGasto,
   claveDeMes,
+  gastoFijoSaltadoEnMes,
   gastoFijoTocaEnMes,
+  gastoFijoTocariaEnMes,
   indiceCategoriaPorTexto,
   indiceGastoFijo,
 } from "../lib/clasificacion";
@@ -264,9 +266,31 @@ export default function Home() {
   const gastosFijosConEstado = gastosFijos
     .map((gf) => {
       const pagadoCon = movimientoQuePaga(gf, movDelMes);
-      return { ...gf, registrado: !!pagadoCon, pagadoCon };
+      const saltado = !pagadoCon && gastoFijoSaltadoEnMes(gf, mesSeleccionado);
+      return { ...gf, registrado: !!pagadoCon, pagadoCon, saltado };
     })
-    .filter((gf) => gf.registrado || gastoFijoTocaEnMes(gf, mesSeleccionado));
+    .filter((gf) => gf.registrado || gastoFijoTocariaEnMes(gf, mesSeleccionado));
+
+  // "Este mes no": ese gasto fijo no se paga el mes elegido (o se deshace).
+  async function saltarFijo(gf, saltar) {
+    setError("");
+    try {
+      const res = saltar
+        ? await fetch("/api/gastos-fijos-saltados", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gastoFijoId: gf.id, anioMes: claveMes }),
+          })
+        : await fetch(`/api/gastos-fijos-saltados?gastoFijoId=${gf.id}&anioMes=${claveMes}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Error ${res.status}`);
+      }
+      cargarTodo();
+    } catch (err) {
+      setError("No se ha podido guardar: " + err.message);
+    }
+  }
 
   const diaHoy = hoy.getDate();
   const gastosFijosHoyEstado = gastosFijos
@@ -1072,9 +1096,9 @@ export default function Home() {
           Toca uno pendiente para apuntarlo con un clic (usa el importe de siempre y la fecha de hoy).
         </p>
         {gastosFijosConEstado.map((gf) => (
-          <div key={gf.id} className={"gf-item" + (gf.registrado ? " ok" : "")}>
+          <div key={gf.id} className={"gf-item" + (gf.registrado ? " ok" : gf.saltado ? " saltado" : "")}>
             <span>
-              {gf.registrado ? "✓" : "○"} {gf.concepto}{" "}
+              {gf.registrado ? "✓" : gf.saltado ? "–" : "○"} {gf.concepto}{" "}
               <span className="dia">
                 {gf.dia && `· día ${gf.dia}`}
                 {gf.meses_alternos_desde && " · mes sí, mes no"}
@@ -1092,12 +1116,28 @@ export default function Home() {
             </span>
             <span className="gf-right">
               {money(gf.importe)}
-              {!gf.registrado && (
+              {!gf.registrado && !gf.saltado && (
                 <button type="button" className="mini-btn" onClick={() => registrarRapido(gf)}>
                   Apuntar
                 </button>
               )}
             </span>
+            {!gf.registrado && (
+              <span className="gf-saltar">
+                {gf.saltado ? (
+                  <>
+                    este mes no se paga ·{" "}
+                    <button type="button" className="link-btn" onClick={() => saltarFijo(gf, false)}>
+                      deshacer
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="link-btn" onClick={() => saltarFijo(gf, true)}>
+                    este mes no
+                  </button>
+                )}
+              </span>
+            )}
           </div>
         ))}
       </div>

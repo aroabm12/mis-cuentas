@@ -7,7 +7,9 @@ import { conManejoErrores } from "../../../lib/api-utils";
 export const GET = conManejoErrores(async function GET() {
   await ensureSchema();
   const rows = await sql`
-    SELECT id, concepto, importe, dia, meses_alternos_desde FROM gastos_fijos ORDER BY orden ASC, id ASC
+    SELECT g.id, g.concepto, g.importe, g.dia, g.meses_alternos_desde,
+      COALESCE((SELECT array_agg(s.anio_mes) FROM gastos_fijos_saltados s WHERE s.gasto_fijo_id = g.id), '{}') AS meses_saltados
+    FROM gastos_fijos g ORDER BY g.orden ASC, g.id ASC
   `;
   return NextResponse.json({ gastosFijos: rows });
 });

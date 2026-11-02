@@ -546,3 +546,33 @@ label.check input[type="month"] { width: auto; padding: 4px 8px; min-height: 0; 
 .gf-item.saltado > span:first-child { text-decoration: line-through; }
 .gf-saltar { flex-basis: 100%; margin: 2px 0 0 18px; font-size: 0.72rem; color: var(--color-muted); }
 .gf-saltar .link-btn { font-size: 0.72rem; padding: 0; color: var(--color-muted); font-weight: normal; }
+
+/* Importar movimientos */
+.importar-texto {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+.importar-fila { padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+.importar-fila.fuera { opacity: 0.5; }
+.importar-fila select { margin-top: 6px; min-height: 36px; padding: 6px; font-size: 0.85rem; }
+.importar-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+.importar-cabecera input[type="checkbox"] { width: auto; min-height: 0; accent-color: var(--color-primary); }
+.importar-fecha { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.importar-concepto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.importar-importe { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.importar-importe.gasto { color: var(--color-gasto); }
+.importar-importe.ingreso { color: var(--color-ingreso); }
+.importar-nota { font-size: 0.72rem; color: var(--color-gasto); margin: 2px 0 0 24px; }
+.importar-aviso { margin-top: 10px; }

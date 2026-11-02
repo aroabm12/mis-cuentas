@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { descargarExcel } from "../lib/exportarExcel";
+import { categoriaDeTexto, leerMovimientos, pareceRepetido } from "../lib/importar";
 import {
   clasificarGasto,
   claveDeMes,
@@ -1264,6 +1265,13 @@ export default function Home() {
         </form>
       </div>
 
+      <ImportarMovimientos
+        gastosFijos={gastosFijos}
+        categorias={presupuestoVariable}
+        movimientos={movimientos}
+        onTerminado={cargarTodo}
+      />
+
       <div className="card">
         <div className="resumen-mes-header">
           <strong>Movimientos</strong>
@@ -1645,5 +1653,150 @@ function FilaMovimientoEditable({ m, gastosFijos, categorias, onGuardar, onCance
         </div>
       </td>
     </tr>
+  );
+}
+
+// Pegar movimientos (p.ej. los que te pasa otro chat a partir de capturas
+// del banco), revisarlos y añadirlos de golpe.
+function ImportarMovimientos({ gastosFijos, categorias, movimientos, onTerminado }) {
+  const [abierto, setAbierto] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [filas, setFilas] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [aviso, setAviso] = useState("");
+
+  function leer() {
+    setAviso("");
+    setFilas(
+      leerMovimientos(texto).map((f) => {
+        const repetido = !f.error && pareceRepetido(f, movimientos);
+        return {
+          ...f,
+          repetido,
+          incluir: !f.error && !repetido,
+          categoria:
+            f.tipo === "gasto"
+              ? categoriaDeTexto(f.categoriaTexto, gastosFijos, categorias) ||
+                sugerirCategoria(f.concepto, gastosFijos, categorias)
+              : "",
+        };
+      })
+    );
+  }
+
+  function cambiar(i, cambios) {
+    setFilas((fs) => fs.map((f, k) => (k === i ? { ...f, ...cambios } : f)));
+  }
+
+  const elegidas = (filas || []).filter((f) => f.incluir);
+  const sinCategoria = elegidas.filter((f) => f.tipo === "gasto" && !f.categoria);
+
+  async function anadir() {
+    if (sinCategoria.length) {
+      setAviso(`Elige la categoría de ${sinCategoria.length === 1 ? "1 gasto" : sinCategoria.length + " gastos"}.`);
+      return;
+    }
+    setGuardando(true);
+    setAviso("");
+    let hechos = 0;
+    try {
+      for (const f of elegidas) {
+        const elegida = f.tipo === "gasto" ? resolverCategoria(f.categoria, f.concepto, gastosFijos) : null;
+        const res = await fetch("/api/movimientos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fecha: f.fecha,
+            concepto: elegida ? elegida.concepto : f.concepto,
+            gasto: f.tipo === "gasto" ? f.importe : 0,
+            ingreso: f.tipo === "ingreso" ? f.importe : 0,
+            categoriaId: elegida ? elegida.categoriaId : null,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Error ${res.status}`);
+        }
+        hechos++;
+      }
+      setFilas(null);
+      setTexto("");
+      setAviso(`Añadidos ${hechos} movimientos.`);
+    } catch (err) {
+      // Los que ya se han guardado no se repiten: se quitan de la lista.
+      setFilas((fs) => fs.filter((f) => !elegidas.slice(0, hechos).includes(f)));
+      setAviso(`Se han añadido ${hechos} y ha fallado el siguiente: ${err.message}`);
+    }
+    setGuardando(false);
+    onTerminado();
+  }
+
+  return (
+    <div className="card no-imprimir">
+      <button type="button" className="link-btn" onClick={() => setAbierto((v) => !v)}>
+        {abierto ? "Ocultar importar movimientos" : "Importar movimientos (pegar texto)"}
+      </button>
+      {abierto && (
+        <div style={{ marginTop: 10 }}>
+          <p className="subtitle" style={{ margin: "0 0 8px" }}>
+            Pega una línea por movimiento: <code>dd/mm/aaaa;concepto;importe;categoría</code> (importe negativo
+            si es gasto).
+          </p>
+          <textarea
+            className="importar-texto"
+            rows={6}
+            placeholder={"02/11/2026;Mercadona;-32,40;Comida / supermercado"}
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+          />
+          <button type="button" onClick={leer} disabled={!texto.trim()} style={{ width: "100%", marginTop: 8 }}>
+            Revisar
+          </button>
+
+          {filas && (
+            <div className="importar-lista">
+              <p className="subtitle" style={{ margin: "12px 0 6px" }}>
+                {filas.length} líneas. Desmarca las que no quieras. Las marcadas como «¿repetido?» ya parecen estar en la
+                app (mismo día e importe).
+              </p>
+              {filas.map((f, i) => (
+                <div key={i} className={"importar-fila" + (f.incluir ? "" : " fuera") + (f.error ? " con-error" : "")}>
+                  <label className="importar-cabecera">
+                    <input
+                      type="checkbox"
+                      checked={f.incluir}
+                      disabled={!!f.error}
+                      onChange={(e) => cambiar(i, { incluir: e.target.checked })}
+                    />
+                    <span className="importar-fecha">
+                      {f.fecha ? f.fecha.split("-").reverse().slice(0, 2).join("/") : "—"}
+                    </span>
+                    <span className="importar-concepto">{f.concepto || f.texto}</span>
+                    <span className={"importar-importe " + f.tipo}>
+                      {f.tipo === "gasto" ? "−" : "+"}
+                      {money(f.importe)}
+                    </span>
+                  </label>
+                  {f.error && <div className="importar-nota">{f.error}</div>}
+                  {f.repetido && <div className="importar-nota">¿repetido?</div>}
+                  {!f.error && f.tipo === "gasto" && f.incluir && (
+                    <SelectorCategoria
+                      value={f.categoria}
+                      onChange={(v) => cambiar(i, { categoria: v })}
+                      gastosFijos={gastosFijos}
+                      categorias={categorias}
+                    />
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={anadir} disabled={guardando || !elegidas.length} style={{ width: "100%", marginTop: 10 }}>
+                {guardando ? "Añadiendo…" : `Añadir ${elegidas.length} movimientos`}
+              </button>
+            </div>
+          )}
+          {aviso && <div className="error-msg importar-aviso">{aviso}</div>}
+        </div>
+      )}
+    </div>
   );
 }

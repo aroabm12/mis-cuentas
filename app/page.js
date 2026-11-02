@@ -655,32 +655,6 @@ export default function Home() {
   const proyeccionVariable =
     esMesActual && diaHoy >= 3 && diaHoy < diasDelMes ? (gastadoVariableReal / diaHoy) * diasDelMes : null;
 
-  // ---- Ahorro mes a mes (hasta 6 meses, terminando en el elegido) ----
-  const indiceMes = (d) => d.getFullYear() * 12 + d.getMonth();
-  function ahorroDelMes(d) {
-    const movs = filas.filter((m) => mismoMes(m.fecha, d));
-    return movs.reduce((s, m) => s + Number(m.ingreso) - Number(m.gasto), 0);
-  }
-  const mesesEvolucion = primerMesConDatos
-    ? [5, 4, 3, 2, 1, 0]
-        .map((n) => new Date(mesSeleccionado.getFullYear(), mesSeleccionado.getMonth() - n, 1))
-        .filter((d) => indiceMes(d) >= indiceMes(primerMesConDatos))
-        .map((d) => ({
-          fecha: d,
-          nombre: d.toLocaleDateString("es-ES", { month: "short" }).replace(".", ""),
-          ahorro: ahorroDelMes(d),
-        }))
-    : [];
-  const maxEscalaAhorro = Math.max(metaMin, ...mesesEvolucion.map((m) => Math.abs(m.ahorro)), 1);
-  // Acumulado del año del mes elegido, desde enero (o desde el primer mes con datos).
-  const mesesDelAnio = primerMesConDatos
-    ? Array.from({ length: mesSeleccionado.getMonth() + 1 }, (_, i) => new Date(mesSeleccionado.getFullYear(), i, 1)).filter(
-        (d) => indiceMes(d) >= indiceMes(primerMesConDatos)
-      )
-    : [];
-  const ahorroAnio = mesesDelAnio.reduce((s, d) => s + ahorroDelMes(d), 0);
-  const metaAnio = metaMin * mesesDelAnio.length;
-
   // ---- Gráfico de tarta: en qué se ha ido el dinero este mes ----
   const PALETA_TARTA = ["#5c7d76", "#a08384", "#a9aa85", "#b0564c", "#8fb0a6", "#d0a266", "#7c9caf", "#9c8bb8", "#b0aa8f"];
   function claseDeGasto(m) {
@@ -1076,51 +1050,6 @@ export default function Home() {
           Ahorro real hasta ahora (ingresos − gastos que ya has metido): <strong>{money(ahorroRealMes)}</strong>
         </div>
       </div>
-
-      {mesesEvolucion.length > 0 && (
-        <div className="card">
-          <strong>Tu ahorro mes a mes</strong>
-          <p className="subtitle" style={{ margin: "6px 0 12px" }}>
-            Ingresos menos gastos de cada mes. La raya marca tu meta ({money(metaMin)}).
-          </p>
-          <div className="evolucion">
-            {mesesEvolucion.map((mes) => {
-              const ancho = (Math.abs(mes.ahorro) / maxEscalaAhorro) * 100;
-              const cumple = mes.ahorro >= metaMin;
-              return (
-                <div
-                  key={mes.nombre + mes.fecha.getFullYear()}
-                  className={"evo-fila" + (indiceMes(mes.fecha) === indiceMes(mesSeleccionado) ? " actual" : "")}
-                  title={`${mes.fecha.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}: ${money(mes.ahorro)}`}
-                >
-                  <span className="evo-mes">{mes.nombre}</span>
-                  <div className="evo-pista">
-                    <div
-                      className={"evo-barra" + (mes.ahorro < 0 ? " negativa" : cumple ? " cumple" : "")}
-                      style={{ width: `${ancho}%` }}
-                    />
-                    <div className="evo-meta" style={{ left: `${(metaMin / maxEscalaAhorro) * 100}%` }} />
-                  </div>
-                  <span className="evo-valor">
-                    {money(mes.ahorro)} {cumple ? "✓" : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="ahorro-real-linea">
-            Llevas ahorrado en {mesSeleccionado.getFullYear()}: <strong>{money(ahorroAnio)}</strong>
-            {metaAnio > 0 && (
-              <>
-                {" "}de {money(metaAnio)} que te habías propuesto
-                {ahorroAnio >= metaAnio
-                  ? ` (vas ${money(ahorroAnio - metaAnio)} por encima).`
-                  : ` (te faltan ${money(metaAnio - ahorroAnio)}).`}
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="card">
         <strong>Gastos fijos de este mes</strong>

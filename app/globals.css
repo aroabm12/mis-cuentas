@@ -480,41 +480,6 @@ label.check input[type="month"] { width: auto; padding: 4px 8px; min-height: 0; 
 .comparativa.sube { color: var(--color-gasto); }
 .comparativa.baja { color: var(--color-ingreso); }
 
-/* Ahorro mes a mes */
-.evolucion { display: flex; flex-direction: column; gap: 8px; }
-.evo-fila {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  font-size: 0.85rem;
-}
-.evo-fila.actual .evo-mes { font-weight: 700; color: var(--color-primary-dark); }
-.evo-mes { color: var(--color-muted); text-transform: capitalize; }
-.evo-pista {
-  position: relative;
-  height: 12px;
-  background: var(--color-primary-soft);
-  border-radius: 999px;
-}
-.evo-barra {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--color-olive);
-}
-.evo-barra.cumple { background: var(--color-primary); }
-.evo-barra.negativa { background: var(--color-gasto); }
-.evo-meta {
-  position: absolute;
-  top: -3px;
-  bottom: -3px;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--color-text);
-  opacity: 0.55;
-  border-radius: 1px;
-}
-.evo-valor { font-variant-numeric: tabular-nums; text-align: right; min-width: 92px; }
 .link-btn:hover { background: transparent; color: var(--color-primary-dark); }
 
 /* Reparto tras cobrar */

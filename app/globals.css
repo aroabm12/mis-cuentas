@@ -576,3 +576,5 @@ label.check input[type="month"] { width: auto; padding: 4px 8px; min-height: 0; 
 .importar-importe.ingreso { color: var(--color-ingreso); }
 .importar-nota { font-size: 0.72rem; color: var(--color-gasto); margin: 2px 0 0 24px; }
 .importar-aviso { margin-top: 10px; }
+
+button:disabled { opacity: 0.5; cursor: default; }

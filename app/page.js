@@ -136,6 +136,9 @@ export default function Home() {
   const [categoria, setCategoria] = useState("");
   const [categoriaTocada, setCategoriaTocada] = useState(false);
   const [movEditandoId, setMovEditandoId] = useState(null);
+  // Mientras se guarda un "Apuntar", los botones no responden (evita
+  // apuntar lo mismo varias veces con toques seguidos).
+  const [apuntando, setApuntando] = useState(false);
   const [categoriaAbiertaId, setCategoriaAbiertaId] = useState(null);
 
   const [mostrarGestion, setMostrarGestion] = useState(false);
@@ -458,6 +461,8 @@ export default function Home() {
   }
 
   async function guardarRapido(movimiento) {
+    if (apuntando) return;
+    setApuntando(true);
     setError("");
     try {
       const res = await fetch("/api/movimientos", {
@@ -469,10 +474,11 @@ export default function Home() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Error ${res.status}`);
       }
-      cargarTodo();
+      await cargarTodo();
     } catch (err) {
       setError("No se ha podido apuntar: " + err.message);
     }
+    setApuntando(false);
   }
 
   async function registrarIngresoRapido(iff) {
@@ -761,7 +767,7 @@ export default function Home() {
                 <span>🎉 Hoy cobras: {iff.concepto}</span>
                 <span className="gf-right">
                   {money(iff.importe)}
-                  <button type="button" className="mini-btn" onClick={() => registrarIngresoRapido(iff)}>
+                  <button type="button" className="mini-btn" disabled={apuntando} onClick={() => registrarIngresoRapido(iff)}>
                     Apuntar
                   </button>
                 </span>
@@ -772,7 +778,7 @@ export default function Home() {
                 <span>💸 Hoy se te cobra: {gf.concepto}</span>
                 <span className="gf-right">
                   {money(gf.importe)}
-                  <button type="button" className="mini-btn" onClick={() => registrarRapido(gf)}>
+                  <button type="button" className="mini-btn" disabled={apuntando} onClick={() => registrarRapido(gf)}>
                     Apuntar
                   </button>
                 </span>
@@ -1130,7 +1136,7 @@ export default function Home() {
             <span className="gf-right">
               {money(gf.importe)}
               {!gf.registrado && !gf.saltado && (
-                <button type="button" className="mini-btn" onClick={() => registrarRapido(gf, mesSeleccionado)}>
+                <button type="button" className="mini-btn" disabled={apuntando} onClick={() => registrarRapido(gf, mesSeleccionado)}>
                   Apuntar
                 </button>
               )}

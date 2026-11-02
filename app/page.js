@@ -226,11 +226,19 @@ export default function Home() {
   // (comida, ocio, lo que sea) es lo que consume ese "disponible".
   const esGastoVariable = (m) =>
     Number(m.gasto) > 0 && !clasificarGasto(m, gastosFijos, presupuestoVariable).fijo;
-  const gastadoVariableReal = movDelMes.filter(esGastoVariable).reduce((s, m) => s + Number(m.gasto), 0);
+  const gastosVariablesMes = movDelMes.filter(esGastoVariable).reduce((s, m) => s + Number(m.gasto), 0);
+  // Ingresos que no son los fijos (Bizums, Vinted, lo que te devuelven...):
+  // compensan lo gastado. Los fijos (el Paro) ya están en "Ingresos previstos".
+  const esIngresoFijo = (m) =>
+    ingresosFijos.some((iff) => m.concepto.toLowerCase().includes(iff.concepto.toLowerCase()));
+  const ingresosExtraMes = movDelMes
+    .filter((m) => Number(m.ingreso) > 0 && !esIngresoFijo(m))
+    .reduce((s, m) => s + Number(m.ingreso), 0);
+  const gastadoVariableReal = gastosVariablesMes - ingresosExtraMes;
   const restaDisponible = disponibleParaGastar - gastadoVariableReal;
   const porcentajeDisponible =
     disponibleParaGastar > 0
-      ? Math.min(100, (gastadoVariableReal / disponibleParaGastar) * 100)
+      ? Math.min(100, Math.max(0, (gastadoVariableReal / disponibleParaGastar) * 100))
       : gastadoVariableReal > 0
       ? 100
       : 0;
@@ -1048,6 +1056,11 @@ export default function Home() {
           </div>
           <div className="var-item-bottom">
             {money(gastadoVariableReal)} de {money(disponibleParaGastar)}
+            {ingresosExtraMes > 0 && (
+              <>
+                {" "}({money(gastosVariablesMes)} gastado − {money(ingresosExtraMes)} de Bizums y otros ingresos)
+              </>
+            )}
           </div>
           {proyeccionVariable !== null && (
             <div className={"proyeccion" + (proyeccionVariable > disponibleParaGastar ? " mal" : "")}>

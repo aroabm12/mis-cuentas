@@ -543,3 +543,41 @@ label.check input[type="month"] { width: auto; padding: 4px 8px; min-height: 0; 
 .importar-aviso { margin-top: 10px; }
 
 button:disabled { opacity: 0.5; cursor: default; }
+/* Ahorro de cobro a cobro */
+.evolucion { display: flex; flex-direction: column; gap: 8px; }
+.evo-fila {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.evo-fila.actual .evo-mes { font-weight: 700; color: var(--color-primary-dark); }
+.evo-mes { color: var(--color-muted); }
+.evo-pista {
+  position: relative;
+  height: 12px;
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+}
+.evo-barra {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-olive);
+}
+.evo-barra.cumple { background: var(--color-primary); }
+.evo-barra.negativa { background: var(--color-gasto); }
+.evo-meta {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-text);
+  opacity: 0.55;
+  border-radius: 1px;
+}
+.evo-valor { font-variant-numeric: tabular-nums; text-align: right; min-width: 92px; }
+.evo-hasta { display: block; font-size: 0.7rem; text-transform: none; }
+.evo-barra.en-curso { opacity: 0.55; }
+.evo-de-momento { display: block; font-size: 0.7rem; color: var(--color-muted); }

@@ -655,6 +655,44 @@ export default function Home() {
   const proyeccionVariable =
     esMesActual && diaHoy >= 3 && diaHoy < diasDelMes ? (gastadoVariableReal / diaHoy) * diasDelMes : null;
 
+  // ---- Ahorro de cobro a cobro ----
+  // Tu "mes" va de un cobro al siguiente (el Paro llega el 9-10), así que el
+  // ahorro se cuenta así: ingresos − gastos entre un cobro y el siguiente.
+  const ingresoPrincipal = [...ingresosFijos].sort((a, b) => Number(b.importe) - Number(a.importe))[0];
+  const fechasCobro = ingresoPrincipal
+    ? [
+        ...new Set(
+          filas
+            .filter(
+              (m) =>
+                Number(m.ingreso) > 0 &&
+                m.concepto.toLowerCase().includes(ingresoPrincipal.concepto.toLowerCase())
+            )
+            .map((m) => String(m.fecha).slice(0, 10))
+        ),
+      ].sort()
+    : [];
+  const periodosAhorro = fechasCobro
+    .map((desde, i) => {
+      const hasta = fechasCobro[i + 1] || null; // el siguiente cobro (no incluido)
+      const movs = filas.filter((m) => {
+        const f = String(m.fecha).slice(0, 10);
+        return f >= desde && (!hasta || f < hasta);
+      });
+      return {
+        desde,
+        hasta,
+        enCurso: !hasta,
+        ahorro: movs.reduce((s, m) => s + Number(m.ingreso) - Number(m.gasto), 0),
+      };
+    })
+    .slice(-6);
+  const periodosCerrados = periodosAhorro.filter((p) => !p.enCurso);
+  const ahorroPeriodosCerrados = periodosCerrados.reduce((s, p) => s + p.ahorro, 0);
+  const escalaAhorro = Math.max(metaMin, ...periodosAhorro.map((p) => Math.abs(p.ahorro)), 1);
+  const fechaCorta = (iso) =>
+    new Date(iso + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }).replace(".", "");
+
   // ---- Gráfico de tarta: en qué se ha ido el dinero este mes ----
   const PALETA_TARTA = ["#5c7d76", "#a08384", "#a9aa85", "#b0564c", "#8fb0a6", "#d0a266", "#7c9caf", "#9c8bb8", "#b0aa8f"];
   function claseDeGasto(m) {
@@ -1050,6 +1088,55 @@ export default function Home() {
           Ahorro real hasta ahora (ingresos − gastos que ya has metido): <strong>{money(ahorroRealMes)}</strong>
         </div>
       </div>
+
+      {periodosAhorro.length > 0 && (
+        <div className="card">
+          <strong>Tu ahorro de cobro a cobro</strong>
+          <p className="subtitle" style={{ margin: "6px 0 12px" }}>
+            Ingresos menos gastos desde que cobras hasta el siguiente cobro. La raya marca tu meta ({money(metaMin)}).
+          </p>
+          <div className="evolucion">
+            {[...periodosAhorro].reverse().map((p) => {
+              const cumple = p.ahorro >= metaMin;
+              return (
+                <div key={p.desde} className={"evo-fila" + (p.enCurso ? " actual" : "")}>
+                  <span className="evo-mes">
+                    {fechaCorta(p.desde)}
+                    <span className="evo-hasta">{p.enCurso ? "en curso" : `– ${fechaCorta(p.hasta)}`}</span>
+                  </span>
+                  <div className="evo-pista">
+                    <div
+                      className={
+                        "evo-barra" + (p.ahorro < 0 ? " negativa" : cumple ? " cumple" : "") + (p.enCurso ? " en-curso" : "")
+                      }
+                      style={{ width: `${(Math.abs(p.ahorro) / escalaAhorro) * 100}%` }}
+                    />
+                    <div className="evo-meta" style={{ left: `${(metaMin / escalaAhorro) * 100}%` }} />
+                  </div>
+                  <span className="evo-valor">
+                    {p.enCurso && <span className="evo-de-momento">de momento </span>}
+                    {money(p.ahorro)} {!p.enCurso && cumple ? "✓" : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="ahorro-real-linea">
+            {periodosCerrados.length === 0 ? (
+              <>El primer periodo se cierra cuando vuelvas a cobrar; hasta entonces sale «en curso».</>
+            ) : (
+              <>
+                En {periodosCerrados.length === 1 ? "el último periodo" : `los últimos ${periodosCerrados.length} periodos`} has
+                ahorrado <strong>{money(ahorroPeriodosCerrados)}</strong> de{" "}
+                {money(metaMin * periodosCerrados.length)} que te proponías
+                {ahorroPeriodosCerrados >= metaMin * periodosCerrados.length
+                  ? ` (${money(ahorroPeriodosCerrados - metaMin * periodosCerrados.length)} de más).`
+                  : ` (te faltan ${money(metaMin * periodosCerrados.length - ahorroPeriodosCerrados)}).`}
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <strong>Gastos fijos de este mes</strong>

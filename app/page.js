@@ -81,6 +81,12 @@ function SelectorCategoria({ value, onChange, gastosFijos, categorias }) {
   );
 }
 
+// Fecha "aaaa-mm-dd" en hora de España (toISOString usa la hora UTC y
+// pasada la medianoche daría el día anterior).
+function fechaLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function Home() {
   const [hoy, setHoy] = useState(() => new Date());
   const [mesSeleccionado, setMesSeleccionado] = useState(() => new Date());
@@ -122,7 +128,7 @@ export default function Home() {
   const [metaMinInput, setMetaMinInput] = useState("");
   const [metaMaxInput, setMetaMaxInput] = useState("");
 
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(() => fechaLocal(new Date()));
   const [concepto, setConcepto] = useState("");
   const [importe, setImporte] = useState("");
   const [tipo, setTipo] = useState("gasto");
@@ -438,32 +444,38 @@ export default function Home() {
     }
   }
 
-  async function registrarRapido(gf) {
-    await fetch("/api/movimientos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fecha: new Date().toISOString().slice(0, 10),
-        concepto: gf.concepto,
-        gasto: gf.importe,
-        ingreso: 0,
-      }),
-    });
-    cargarTodo();
+  // "Apuntar" un gasto fijo. Si estás viendo otro mes, se apunta en ese mes
+  // (el día que toca, o el último del mes); si es el mes actual, con fecha de hoy.
+  async function registrarRapido(gf, mesRef = new Date()) {
+    let fechaPago = new Date();
+    if (!mismoMes(fechaPago, mesRef)) {
+      const ultimoDia = new Date(mesRef.getFullYear(), mesRef.getMonth() + 1, 0).getDate();
+      const dia = Number(String(gf.dia || "").match(/\d+/)?.[0]) || ultimoDia;
+      fechaPago = new Date(mesRef.getFullYear(), mesRef.getMonth(), Math.min(Math.max(dia, 1), ultimoDia));
+    }
+    await guardarRapido({ fecha: fechaLocal(fechaPago), concepto: gf.concepto, gasto: gf.importe, ingreso: 0 });
+  }
+
+  async function guardarRapido(movimiento) {
+    setError("");
+    try {
+      const res = await fetch("/api/movimientos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(movimiento),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Error ${res.status}`);
+      }
+      cargarTodo();
+    } catch (err) {
+      setError("No se ha podido apuntar: " + err.message);
+    }
   }
 
   async function registrarIngresoRapido(iff) {
-    await fetch("/api/movimientos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fecha: new Date().toISOString().slice(0, 10),
-        concepto: iff.concepto,
-        gasto: 0,
-        ingreso: iff.importe,
-      }),
-    });
-    cargarTodo();
+    await guardarRapido({ fecha: fechaLocal(new Date()), concepto: iff.concepto, gasto: 0, ingreso: iff.importe });
   }
 
   async function borrar(id) {
@@ -1117,7 +1129,7 @@ export default function Home() {
             <span className="gf-right">
               {money(gf.importe)}
               {!gf.registrado && !gf.saltado && (
-                <button type="button" className="mini-btn" onClick={() => registrarRapido(gf)}>
+                <button type="button" className="mini-btn" onClick={() => registrarRapido(gf, mesSeleccionado)}>
                   Apuntar
                 </button>
               )}

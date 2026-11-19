@@ -1725,8 +1725,13 @@ function ImportarMovimientos({ gastosFijos, categorias, movimientos, onTerminado
 
   const elegidas = (filas || []).filter((f) => f.incluir);
   const sinCategoria = elegidas.filter((f) => f.tipo === "gasto" && !f.categoria);
+  const sinConcepto = elegidas.filter((f) => !f.concepto.trim());
 
   async function anadir() {
+    if (sinConcepto.length) {
+      setAviso("Hay algún movimiento sin concepto: escríbelo o desmárcalo.");
+      return;
+    }
     if (sinCategoria.length) {
       setAviso(`Elige la categoría de ${sinCategoria.length === 1 ? "1 gasto" : sinCategoria.length + " gastos"}.`);
       return;
@@ -1736,13 +1741,13 @@ function ImportarMovimientos({ gastosFijos, categorias, movimientos, onTerminado
     let hechos = 0;
     try {
       for (const f of elegidas) {
-        const elegida = f.tipo === "gasto" ? resolverCategoria(f.categoria, f.concepto, gastosFijos) : null;
+        const elegida = f.tipo === "gasto" ? resolverCategoria(f.categoria, f.concepto.trim(), gastosFijos) : null;
         const res = await fetch("/api/movimientos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fecha: f.fecha,
-            concepto: elegida ? elegida.concepto : f.concepto,
+            concepto: elegida ? elegida.concepto : f.concepto.trim(),
             gasto: f.tipo === "gasto" ? f.importe : 0,
             ingreso: f.tipo === "ingreso" ? f.importe : 0,
             categoriaId: elegida ? elegida.categoriaId : null,
@@ -1796,9 +1801,10 @@ function ImportarMovimientos({ gastosFijos, categorias, movimientos, onTerminado
               </p>
               {filas.map((f, i) => (
                 <div key={i} className={"importar-fila" + (f.incluir ? "" : " fuera") + (f.error ? " con-error" : "")}>
-                  <label className="importar-cabecera">
+                  <div className="importar-cabecera">
                     <input
                       type="checkbox"
+                      aria-label="Incluir"
                       checked={f.incluir}
                       disabled={!!f.error}
                       onChange={(e) => cambiar(i, { incluir: e.target.checked })}
@@ -1806,12 +1812,22 @@ function ImportarMovimientos({ gastosFijos, categorias, movimientos, onTerminado
                     <span className="importar-fecha">
                       {f.fecha ? f.fecha.split("-").reverse().slice(0, 2).join("/") : "—"}
                     </span>
-                    <span className="importar-concepto">{f.concepto || f.texto}</span>
+                    {f.error ? (
+                      <span className="importar-concepto">{f.concepto || f.texto}</span>
+                    ) : (
+                      <input
+                        type="text"
+                        className="importar-concepto-input"
+                        aria-label="Concepto"
+                        value={f.concepto}
+                        onChange={(e) => cambiar(i, { concepto: e.target.value })}
+                      />
+                    )}
                     <span className={"importar-importe " + f.tipo}>
                       {f.tipo === "gasto" ? "−" : "+"}
                       {money(f.importe)}
                     </span>
-                  </label>
+                  </div>
                   {f.error && <div className="importar-nota">{f.error}</div>}
                   {f.repetido && <div className="importar-nota">¿repetido?</div>}
                   {!f.error && f.tipo === "gasto" && f.incluir && (

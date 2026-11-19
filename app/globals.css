@@ -581,3 +581,11 @@ button:disabled { opacity: 0.5; cursor: default; }
 .evo-hasta { display: block; font-size: 0.7rem; text-transform: none; }
 .evo-barra.en-curso { opacity: 0.55; }
 .evo-de-momento { display: block; font-size: 0.7rem; color: var(--color-muted); }
+.importar-concepto-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px !important;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
